@@ -38,7 +38,7 @@ static int cmd_q(char *args) {
 }
 
 static int cmd_si(char *args) {
-  return -1;
+  return 0;
 }
 
 static int cmd_help(char *args);
