@@ -47,10 +47,10 @@ function init_no_git() {
 
 case $1 in
   nemu)
-    init nemu ics2022 NEMU_HOME
+    init nemu ics2021 NEMU_HOME
     ;;
   abstract-machine)
-    init abstract-machine ics2022 AM_HOME
+    init abstract-machine ics2021 AM_HOME
     init_no_git fceux-am ics2021
     ;;
   am-kernels)
