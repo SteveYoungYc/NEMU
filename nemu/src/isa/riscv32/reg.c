@@ -9,6 +9,16 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  for (int i = 0; i < 32; i++) {
+    rtlreg_t val = cpu.gpr[i]._32;
+    printf("%s\t\t", regs[i]);
+    int len = printf("%x", val);
+    len = 16 - len;
+    for (int i = 0; i < len; i++) {
+      printf(" ");
+    }
+    printf("%d\n", val);
+  }
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {

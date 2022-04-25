@@ -3,6 +3,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include <memory/paddr.h>
 
 static int is_batch_mode = false;
 
@@ -38,6 +39,47 @@ static int cmd_q(char *args) {
 }
 
 static int cmd_si(char *args) {
+  int n = 1;
+  if (args != NULL) {
+    n = atoi(args);
+  }
+  cpu_exec(n);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("usage: 'info r' or 'info w'\n");
+    return 0;
+  }
+  if (strcmp(args, "r") == 0) {
+    isa_reg_display();
+  } else if (strcmp(args, "w") == 0) {
+    
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  if (args == NULL) {
+    printf("usage: 'x N EXPR'\n");
+    return 0;
+  }
+  char *delim = " ";
+  char *p;
+  int n = atoi(strtok(args, delim));
+  n *= 4;
+  int reg_addr = 0;
+  while((p = strtok(NULL, delim))) {
+    reg_addr = atoi(p);
+  }
+  for (int i = 0; i < n; i++) {
+    if (i > 0 && i % 4 == 0)
+      printf("\n");
+    printf("[0x%x] 0x%x\t", reg_addr, paddr_read(reg_addr, 1));
+    reg_addr++;
+  }
+  printf("\n");
   return 0;
 }
 
@@ -53,7 +95,9 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-  { "si", "Single step execution", cmd_si },
+  { "si", "Execute single step", cmd_si },
+  { "info", "Print status", cmd_info },
+  { "x", "Scan memory", cmd_x },
 };
 
 #define NR_CMD ARRLEN(cmd_table)
