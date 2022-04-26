@@ -71,7 +71,11 @@ static int cmd_x(char *args) {
   n *= 4;
   int reg_addr = 0;
   while((p = strtok(NULL, delim))) {
-    reg_addr = atoi(p);
+    if (strncmp(p, "0x", 2) != 0 || p + 2 == NULL || *(p + 2) == '\0') {
+      printf("usage: 'x N EXPR'\n");
+      return 0;
+    }
+    reg_addr = strtol(p, NULL, 16);
   }
   for (int i = 0; i < n; i++) {
     if (i > 0 && i % 4 == 0)
