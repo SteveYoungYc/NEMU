@@ -9,7 +9,7 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
-
+  TK_NUM,
 };
 
 static struct rule {
@@ -23,7 +23,9 @@ static struct rule {
 
   {" +", TK_NOTYPE},    // spaces
   {"\\+", '+'},         // plus
+  {"\\*", '*'},         //
   {"==", TK_EQ},        // equal
+  {"[0-9][0-9]*", TK_NUM},
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -80,7 +82,21 @@ static bool make_token(char *e) {
          */
 
         switch (rules[i].token_type) {
-          default: TODO();
+          case TK_NOTYPE:
+            break;
+          case TK_NUM: {
+            tokens[nr_token].type = TK_NUM;
+            memset(tokens[nr_token].str, ' ', 32);
+            strncpy(tokens[nr_token].str, e + position - substr_len, substr_len);
+            // printf("token str: %s\n", tokens[nr_token].str);
+            nr_token++;
+            break;
+          }
+          case '+': {
+            tokens[nr_token].type = '+';
+            nr_token++;
+          }
+          // default: TODO();
         }
 
         break;
@@ -92,10 +108,26 @@ static bool make_token(char *e) {
       return false;
     }
   }
+  // printf("There are %d token(s)\n", nr_token);
 
   return true;
 }
 
+word_t eval(int p, int q) {
+  word_t res = 0;
+  for (size_t i = 0; i < 32; i++) {
+    switch (tokens[i].type) {
+    case TK_NUM: {
+      word_t num = atoi(tokens[i].str);
+      res += num;
+      break;
+    }
+    default:
+      break;
+    }
+  }
+  return res;
+}
 
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
@@ -104,7 +136,8 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  int res = eval(0, 0);
+  *success = true;
 
-  return 0;
+  return res;
 }
