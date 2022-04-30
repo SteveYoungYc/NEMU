@@ -22,8 +22,10 @@ static struct rule {
    */
 
   {" +", TK_NOTYPE},    // spaces
-  {"\\+", '+'},         // plus
   {"\\*", '*'},         //
+  {"/", '/'},         //
+  {"\\+", '+'},         // plus
+  {"-", '-'},         //
   {"==", TK_EQ},        // equal
   {"[0-9][0-9]*", TK_NUM},
 };
@@ -95,6 +97,22 @@ static bool make_token(char *e) {
           case '+': {
             tokens[nr_token].type = '+';
             nr_token++;
+            break;
+          }
+          case '*': {
+            tokens[nr_token].type = '*';
+            nr_token++;
+            break;
+          }
+          case '-': {
+            tokens[nr_token].type = '-';
+            nr_token++;
+            break;
+          }
+          case '/': {
+            tokens[nr_token].type = '/';
+            nr_token++;
+            break;
           }
           // default: TODO();
         }
@@ -108,25 +126,67 @@ static bool make_token(char *e) {
       return false;
     }
   }
-  // printf("There are %d token(s)\n", nr_token);
+  // for (int i = 0; i < nr_token; i++) {
+  //   printf("token %d type is %c\n", i, tokens[i].type);
+  // }
 
   return true;
 }
 
+bool check_parentheses(int p, int q) {
+  return false;
+}
+
 word_t eval(int p, int q) {
-  word_t res = 0;
-  for (size_t i = 0; i < 32; i++) {
-    switch (tokens[i].type) {
-    case TK_NUM: {
-      word_t num = atoi(tokens[i].str);
-      res += num;
-      break;
+  if (p > q) {
+    /* Bad expression */
+    return 0;
+  } else if (p == q) {
+    /* Single token.
+     * For now this token should be a number.
+     * Return the value of the number.
+     */
+    return atoi(tokens[p].str);
+  } else if (check_parentheses(p, q) == true) {
+    /* The expression is surrounded by a matched pair of parentheses.
+     * If that is the case, just throw away the parentheses.
+     */
+    return eval(p + 1, q - 1);
+  } else {
+    word_t op = -1;
+    int precedence = 2;
+    for (size_t i = p; i <= q; i++) {
+      if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-')
+        continue;
+      switch (tokens[i].type) {
+      case '*':
+      case '/':
+        if (1 <= precedence) {
+          precedence = 1;
+          op = i;
+        }
+        break;
+      case '+':
+      case '-':
+        if (0 <= precedence) {
+          precedence = 0;
+          op = i;
+        }
+        break;
+      }
     }
-    default:
-      break;
+    printf("main op is %c\n", tokens[op].type);
+    word_t val1 = eval(p, op - 1);
+    word_t val2 = eval(op + 1, q);
+
+    switch (tokens[op].type) {
+      case '+': return val1 + val2;
+      case '-': return val1 - val2;
+      case '*': return val1 * val2;
+      case '/': return val1 / val2;
+      default: assert(0); return 0;
     }
   }
-  return res;
 }
 
 word_t expr(char *e, bool *success) {
@@ -136,7 +196,7 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  int res = eval(0, 0);
+  int res = eval(0, nr_token - 1);
   *success = true;
 
   return res;
