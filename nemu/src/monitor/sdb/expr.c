@@ -10,6 +10,8 @@ enum {
 
   /* TODO: Add more token types */
   TK_NUM,
+  TK_LP,
+  TK_RP,
 };
 
 static struct rule {
@@ -22,6 +24,8 @@ static struct rule {
    */
 
   {" +", TK_NOTYPE},    // spaces
+  {"\\(", TK_LP},
+  {"\\)", TK_RP},
   {"\\*", '*'},         //
   {"/", '/'},         //
   {"\\+", '+'},         // plus
@@ -114,6 +118,16 @@ static bool make_token(char *e) {
             nr_token++;
             break;
           }
+          case TK_LP: {
+            tokens[nr_token].type = TK_LP;
+            nr_token++;
+            break;
+          }
+          case TK_RP: {
+            tokens[nr_token].type = TK_RP;
+            nr_token++;
+            break;
+          }
           // default: TODO();
         }
 
@@ -133,8 +147,77 @@ static bool make_token(char *e) {
   return true;
 }
 
+typedef struct stack {
+  int data[32];
+  int top;
+} stack;
+
+stack* stack_init() {
+  stack* s;
+  s = (stack*)malloc(sizeof(stack));
+  s->top = -1;
+  return s;
+}
+
+void stack_add(stack* s, int val) {
+  if (s == NULL)
+    panic("Stack is not initialized!");
+  if (s->top + 1 >= 31)
+    panic("Stack is full!");
+  s->top++;
+  s->data[s->top] = val;
+}
+
+int stack_remove(stack* s) {
+  if (s == NULL)
+    panic("Stack is not initialized!");
+  if (s->top == -1)
+    panic("Stack is empty!");
+  int val = s->data[s->top];
+  s->top--;
+  return val;
+}
+
+int stack_top(stack* s) {
+  if (s == NULL)
+    panic("Stack is not initialized!");
+  return s->data[s->top];
+}
+
+bool stack_empty(stack* s) {
+  if (s == NULL)
+    panic("Stack is not initialized!");
+  return s->top == -1;
+}
+
 bool check_parentheses(int p, int q) {
-  return false;
+  int left = p, right = q;
+  while (tokens[left].type == TK_NOTYPE)
+    left++;
+  while (tokens[right].type == TK_NOTYPE)
+    right--;
+
+  if (right <= left)
+    return false;
+  if (tokens[left].type != TK_LP || tokens[right].type != TK_RP)
+    return false;
+  left++;
+  right--;
+  if (right <= left)
+    return false;
+  printf("left: %d, right: %d\n", left, right);
+  stack* stack = stack_init();
+  for (int i = left; i <= right; i++) {
+    if (tokens[i].type == TK_LP) {
+      stack_add(stack, TK_RP);
+    } else if (tokens[i].type == TK_RP) {
+      if (!stack_empty(stack))
+        stack_remove(stack);
+      else
+        return false;
+    }
+  }
+  return stack_empty(stack);
 }
 
 word_t eval(int p, int q) {
@@ -151,28 +234,37 @@ word_t eval(int p, int q) {
     /* The expression is surrounded by a matched pair of parentheses.
      * If that is the case, just throw away the parentheses.
      */
+    // printf("p: %d, q: %d is valid\n", p, q);
     return eval(p + 1, q - 1);
   } else {
     word_t op = -1;
     int precedence = 2;
-    for (size_t i = p; i <= q; i++) {
+    // printf("calc p: %d, q: %d\n", p, q);
+    for (int i = p; i <= q; i++) {
+      if (tokens[i].type == TK_LP) {
+        while (tokens[i].type != TK_RP) {
+          i++;
+        }
+        if (i == q)
+          break;
+      }
       if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-')
         continue;
       switch (tokens[i].type) {
-      case '*':
-      case '/':
-        if (1 <= precedence) {
-          precedence = 1;
-          op = i;
-        }
-        break;
-      case '+':
-      case '-':
-        if (0 <= precedence) {
-          precedence = 0;
-          op = i;
-        }
-        break;
+        case '*':
+        case '/':
+          if (1 <= precedence) {
+            precedence = 1;
+            op = i;
+          }
+          break;
+        case '+':
+        case '-':
+          if (0 <= precedence) {
+            precedence = 0;
+            op = i;
+          }
+          break;
       }
     }
     printf("main op is %c\n", tokens[op].type);
@@ -180,10 +272,14 @@ word_t eval(int p, int q) {
     word_t val2 = eval(op + 1, q);
 
     switch (tokens[op].type) {
-      case '+': return val1 + val2;
-      case '-': return val1 - val2;
-      case '*': return val1 * val2;
-      case '/': return val1 / val2;
+      case '+':
+        return val1 + val2;
+      case '-':
+        return val1 - val2;
+      case '*':
+        return val1 * val2;
+      case '/':
+        return val1 / val2;
       default: assert(0); return 0;
     }
   }
