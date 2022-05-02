@@ -5,6 +5,8 @@
  */
 #include <regex.h>
 
+#define INVALID -1
+
 enum {
   TK_NOTYPE = 256, TK_EQ,
 
@@ -60,7 +62,7 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[1024] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
 static bool make_token(char *e) {
@@ -70,15 +72,15 @@ static bool make_token(char *e) {
 
   nr_token = 0;
 
-  while (e[position] != '\0') {
+  while (e[position] != '\0' && e[position] != '\n') {
     /* Try all rules one by one. */
     for (i = 0; i < NR_REGEX; i ++) {
       if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
-        char *substr_start = e + position;
+        // char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-            i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        // Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+        //     i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 
@@ -190,7 +192,7 @@ bool stack_empty(stack* s) {
   return s->top == -1;
 }
 
-bool check_parentheses(int p, int q) {
+int check_parentheses(int p, int q) {
   int left = p, right = q;
   while (tokens[left].type == TK_NOTYPE)
     left++;
@@ -198,14 +200,13 @@ bool check_parentheses(int p, int q) {
     right--;
 
   if (right <= left)
-    return false;
+    return -1;
   if (tokens[left].type != TK_LP || tokens[right].type != TK_RP)
-    return false;
+    return 0;
   left++;
   right--;
-  if (right <= left)
-    return false;
-  printf("left: %d, right: %d\n", left, right);
+
+  // printf("left: %d, right: %d\n", left, right);
   stack* stack = stack_init();
   for (int i = left; i <= right; i++) {
     if (tokens[i].type == TK_LP) {
@@ -214,40 +215,63 @@ bool check_parentheses(int p, int q) {
       if (!stack_empty(stack))
         stack_remove(stack);
       else
-        return false;
+        return 0;
     }
   }
-  return stack_empty(stack);
+  if (!stack_empty(stack))
+    return -1;
+  return 1;
 }
 
 word_t eval(int p, int q) {
+  int res;
   if (p > q) {
     /* Bad expression */
-    return 0;
+    return INVALID;
   } else if (p == q) {
     /* Single token.
      * For now this token should be a number.
      * Return the value of the number.
      */
     return atoi(tokens[p].str);
-  } else if (check_parentheses(p, q) == true) {
+  } else if ((res = check_parentheses(p, q)) == 1) {
     /* The expression is surrounded by a matched pair of parentheses.
      * If that is the case, just throw away the parentheses.
      */
     // printf("p: %d, q: %d is valid\n", p, q);
     return eval(p + 1, q - 1);
   } else {
+    if (res == -1) {
+      return INVALID;
+    }
     word_t op = -1;
     int precedence = 2;
     // printf("calc p: %d, q: %d\n", p, q);
+    // int left = p, right = q;
+    // int left_paren = -1, right_paren = -1;
+    // while (left <= q && tokens[left].type != TK_LP) {
+    //   left++;
+    // }
+    // while (right >= p && tokens[right].type != TK_RP) {
+    //   right--;
+    // }
+    // if (left < right) {
+    //   left_paren = left;
+    //   right_paren = right;
+    // } else if ((left > q && right >= p) || (right < p && left <= q)) {
+    //   return INVALID;
+    // }
+
+    stack* stack = stack_init();
     for (int i = p; i <= q; i++) {
       if (tokens[i].type == TK_LP) {
-        while (tokens[i].type != TK_RP) {
-          i++;
-        }
-        if (i == q)
-          break;
+        stack_add(stack, TK_RP);
+      } else if (tokens[i].type == TK_RP) {
+        if (!stack_empty(stack))
+          stack_remove(stack);
       }
+      if (!stack_empty(stack))
+        continue;
       if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-')
         continue;
       switch (tokens[i].type) {
@@ -267,7 +291,7 @@ word_t eval(int p, int q) {
           break;
       }
     }
-    printf("main op is %c\n", tokens[op].type);
+    // printf("main op is %c\n", tokens[op].type);
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
 
@@ -292,8 +316,8 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  int res = eval(0, nr_token - 1);
-  *success = true;
+  word_t res = eval(0, nr_token - 1);
+  *success = (res != INVALID);
 
   return res;
 }

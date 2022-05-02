@@ -7,6 +7,8 @@
 
 // this should be enough
 static char buf[65536] = {};
+static int pos = 0;
+int recur_count = 0;
 static char code_buf[65536 + 128] = {}; // a little larger than `buf`
 static char *code_format =
 "#include <stdio.h>\n"
@@ -16,8 +18,41 @@ static char *code_format =
 "  return 0; "
 "}";
 
+int choose(int n) {
+  return rand() % n;
+}
+
+void gen_num() {
+  buf[pos] = choose(9) + '1';
+  pos++;
+}
+
+static char ops[3] = {'+', '*', '/'};
+
+void gen_rand_op() {
+  buf[pos] = ops[choose(2)];
+  pos++;
+}
+
+void gen(char c) {
+  buf[pos] = c;
+  pos++;
+}
+
 static void gen_rand_expr() {
-  buf[0] = '\0';
+  recur_count++;
+  int n;
+  if (recur_count < 30) {
+    n = choose(3);
+  } else {
+    n = choose(2);
+  }
+  switch (n) {
+    case 0: gen_num(); break;
+    case 1: gen('('); gen_rand_expr(); gen(')'); break;
+    default: gen_rand_expr(); gen_rand_op(); gen_rand_expr(); break;
+  }
+  buf[pos] = '\0';
 }
 
 int main(int argc, char *argv[]) {
@@ -28,7 +63,9 @@ int main(int argc, char *argv[]) {
     sscanf(argv[1], "%d", &loop);
   }
   int i;
-  for (i = 0; i < loop; i ++) {
+  for (i = 0; i < loop; i++) {
+    pos = 0;
+    recur_count = 0;
     gen_rand_expr();
 
     sprintf(code_buf, code_format, buf);
@@ -45,7 +82,8 @@ int main(int argc, char *argv[]) {
     assert(fp != NULL);
 
     int result;
-    fscanf(fp, "%d", &result);
+    int r = fscanf(fp, "%d", &result);
+    r++;
     pclose(fp);
 
     printf("%u %s\n", result, buf);

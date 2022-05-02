@@ -94,7 +94,7 @@ static int cmd_p(char *args) {
     printf("%d\n", res);
     return 0;
   } else {
-    printf("expr failed!\n");
+    printf("invalid expression\n");
     return 0;
   }
 }
