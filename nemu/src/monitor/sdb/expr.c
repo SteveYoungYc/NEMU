@@ -231,7 +231,11 @@ word_t eval(int p, int q) {
     }
     // printf("main op is %c\n", tokens[op].type);
     word_t val1 = eval(p, op - 1);
+    if (val1 == INVALID)
+      return INVALID;
     word_t val2 = eval(op + 1, q);
+    if (val2 == INVALID)
+      return INVALID;
 
     switch (tokens[op].type) {
       case '+':
@@ -240,8 +244,12 @@ word_t eval(int p, int q) {
         return val1 - val2;
       case '*':
         return val1 * val2;
-      case '/':
+      case '/': {
+        if (val2 == 0) {
+          return INVALID;
+        }
         return val1 / val2;
+      }
       default: assert(0); return 0;
     }
   }
