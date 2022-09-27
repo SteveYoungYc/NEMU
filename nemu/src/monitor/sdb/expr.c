@@ -14,6 +14,9 @@ enum {
   TK_NUM,
   TK_LP,
   TK_RP,
+  TK_DEREF,
+  TK_HEX,
+  TK_REG
 };
 
 static struct rule {
@@ -33,6 +36,8 @@ static struct rule {
   {"\\+", '+'},         // plus
   {"-", '-'},         //
   {"==", TK_EQ},        // equal
+  {"\\$[0-9a-zA-Z]+", TK_REG},
+  {"0[xX][0-9a-fA-F]+", TK_HEX},
   {"[0-9][0-9]*", TK_NUM},
 };
 
@@ -97,6 +102,24 @@ static bool make_token(char *e) {
             memset(tokens[nr_token].str, ' ', 32);
             strncpy(tokens[nr_token].str, e + position - substr_len, substr_len);
             // printf("token str: %s\n", tokens[nr_token].str);
+            nr_token++;
+            break;
+          }
+          case TK_HEX: {
+            tokens[nr_token].type = TK_HEX;
+            memset(tokens[nr_token].str, ' ', 32);
+            strncpy(tokens[nr_token].str, e + position - substr_len + 2, substr_len - 2);   // remove "0x" prefix
+            nr_token++;
+            break;
+          }
+          case TK_REG: {
+            tokens[nr_token].type = TK_REG;
+            strncpy(tokens[nr_token].str, e + position - substr_len + 1, substr_len - 1);
+            nr_token++;
+            break;
+          }
+          case TK_DEREF: {
+            tokens[nr_token].type = TK_DEREF;
             nr_token++;
             break;
           }
@@ -187,7 +210,26 @@ word_t eval(int p, int q) {
      * For now this token should be a number.
      * Return the value of the number.
      */
-    return atoi(tokens[p].str);
+    word_t val = 0;
+    bool success;
+    switch (tokens[p].type) {
+      case TK_NUM:
+        val = strtol(tokens[p].str, NULL, 10);
+        break;
+      case TK_HEX:
+        val = strtol(tokens[p].str, NULL, 16);
+        break;
+      case TK_REG:
+        val = isa_reg_str2val(tokens[p].str, &success);
+        if (!success) {
+          printf("cannot find reg\n");
+          return INVALID;
+        }
+        break;
+      default:
+        return INVALID;
+    }
+    return val;
   } else if ((res = check_parentheses(p, q)) == 1) {
     /* The expression is surrounded by a matched pair of parentheses.
      * If that is the case, just throw away the parentheses.
@@ -196,6 +238,7 @@ word_t eval(int p, int q) {
     return eval(p + 1, q - 1);
   } else {
     if (res == -1) {
+      printf("parentheses are invalid.");
       return INVALID;
     }
     word_t op = -1;
@@ -262,6 +305,12 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
+  for (int i = 0; i < nr_token; i ++) {
+    if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == 0)) {
+      tokens[i].type = TK_DEREF;
+    }
+  }
+
   word_t res = eval(0, nr_token - 1);
   *success = (res != INVALID);
 
