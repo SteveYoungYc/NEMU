@@ -109,28 +109,29 @@ static bool make_token(char *e) {
             break;
           case TK_NUM: {
             tokens[nr_token].type = TK_NUM;
-            memset(tokens[nr_token].str, ' ', 32);
             strncpy(tokens[nr_token].str, e + position - substr_len, substr_len);
-            // printf("token str: %s\n", tokens[nr_token].str);
+            tokens[nr_token].str[substr_len] = '\0';
             nr_token++;
             break;
           }
           case TK_HEX: {
             tokens[nr_token].type = TK_HEX;
-            memset(tokens[nr_token].str, ' ', 32);
             strncpy(tokens[nr_token].str, e + position - substr_len + 2, substr_len - 2);   // remove "0x" prefix
+            tokens[nr_token].str[substr_len - 2] = '\0';
             nr_token++;
             break;
           }
           case TK_REG: {
             tokens[nr_token].type = TK_REG;
             strncpy(tokens[nr_token].str, e + position - substr_len + 1, substr_len - 1);
+            tokens[nr_token].str[substr_len - 1] = '\0';
             nr_token++;
             break;
           }
           case TK_DEREF: {
             tokens[nr_token].type = TK_DEREF;
             strncpy(tokens[nr_token].str, e + position - substr_len + 3, substr_len - 3);
+            tokens[nr_token].str[substr_len - 3] = '\0';
             nr_token++;
             break;
           }
