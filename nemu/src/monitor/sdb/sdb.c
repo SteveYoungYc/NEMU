@@ -70,7 +70,7 @@ static int cmd_x(char *args) {
   char *p;
   int n = atoi(strtok(args, delim));
   n *= 4;
-  int reg_addr = 0;
+  word_t reg_addr = 0;
   while((p = strtok(NULL, delim))) {
     if (strncmp(p, "0x", 2) != 0 || p + 2 == NULL || *(p + 2) == '\0') {
       printf("usage: 'x N EXPR'\n");
@@ -96,12 +96,9 @@ static int cmd_p(char *args) {
   bool success;
   word_t res = expr(args, &success);
   if (success) {
-    printf("%d\n", res);
-    return 0;
-  } else {
-    printf("invalid expression\n");
-    return 0;
+    printf("%u\n", res);
   }
+  return 0;
 }
 
 static int cmd_help(char *args);

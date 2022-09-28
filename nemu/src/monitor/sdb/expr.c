@@ -4,6 +4,7 @@
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
+#include <memory/paddr.h>
 
 #define INVALID -1
 
@@ -18,7 +19,11 @@ enum {
   TK_RP,
   TK_DEREF,
   TK_HEX,
-  TK_REG
+  TK_REG,
+  TK_MULT,
+  TK_DIVI,
+  TK_ADD,
+  TK_MINUS
 };
 
 static struct rule {
@@ -30,13 +35,14 @@ static struct rule {
    * Pay attention to the precedence level of different rules.
    */
 
+  {"\\*0[xX][0-9a-fA-F]+", TK_DEREF},
   {" +", TK_NOTYPE},    // spaces
   {"\\(", TK_LP},
   {"\\)", TK_RP},
-  {"\\*", '*'},         //
-  {"/", '/'},         //
-  {"\\+", '+'},         // plus
-  {"-", '-'},         //
+  {"\\*", TK_MULT},         //
+  {"/", TK_DIVI},         //
+  {"\\+", TK_ADD},         // plus
+  {"-", TK_MINUS},         //
   {"==", TK_EQ},        // equal
   {"!=", TK_NOTEQ},
   {"&&", TK_LAND},
@@ -122,11 +128,16 @@ static bool make_token(char *e) {
             nr_token++;
             break;
           }
-          case TK_DEREF:
-          case '+':
-          case '*':
-          case '-':
-          case '/':
+          case TK_DEREF: {
+            tokens[nr_token].type = TK_DEREF;
+            strncpy(tokens[nr_token].str, e + position - substr_len + 3, substr_len - 3);
+            nr_token++;
+            break;
+          }
+          case TK_ADD:
+          case TK_MULT:
+          case TK_MINUS:
+          case TK_DIVI:
           case TK_EQ:
           case TK_NOTEQ:
           case TK_LAND:
@@ -210,6 +221,9 @@ word_t eval(int p, int q) {
           return INVALID;
         }
         break;
+      case TK_DEREF:
+        val = paddr_read(strtol(tokens[p].str, NULL, 16), 1);
+        break;
       default:
         printf("[invalid]\n");
         return INVALID;
@@ -238,19 +252,19 @@ word_t eval(int p, int q) {
       }
       if (stack_count > 0)
         continue;
-      if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-' 
+      if (tokens[i].type != TK_MULT && tokens[i].type != TK_DIVI && tokens[i].type != TK_ADD && tokens[i].type != TK_MINUS 
           && tokens[i].type != TK_EQ && tokens[i].type != TK_NOTEQ && tokens[i].type != TK_LAND)
         continue;
       switch (tokens[i].type) {
-        case '*':
-        case '/':
+        case TK_MULT:
+        case TK_DIVI:
           if (3 <= precedence) {
             precedence = 3;
             op = i;
           }
           break;
-        case '+':
-        case '-':
+        case TK_ADD:
+        case TK_MINUS:
           if (2 <= precedence) {
             precedence = 2;
             op = i;
@@ -288,13 +302,13 @@ word_t eval(int p, int q) {
     }
 
     switch (tokens[op].type) {
-      case '+':
+      case TK_ADD:
         return val1 + val2;
-      case '-':
+      case TK_MINUS:
         return val1 - val2;
-      case '*':
+      case TK_MULT:
         return val1 * val2;
-      case '/': {
+      case TK_DIVI: {
         if (val2 == 0) {
           printf("[invalid] divide by 0\n");
           return INVALID;
@@ -319,11 +333,14 @@ word_t expr(char *e, bool *success) {
   }
 
   /* TODO: Insert codes to evaluate the expression. */
-  for (int i = 0; i < nr_token; i ++) {
-    // if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == 0)) {
-    //   tokens[i].type = TK_DEREF;
-    // }
-  }
+  // for (int i = 0; i < nr_token; i ++) {
+  //   if (tokens[i].type == TK_MULT && (i == 0 || tokens[i - 1].type == TK_LP || 
+  //       tokens[i - 1].type == TK_ADD || tokens[i - 1].type == TK_MINUS || 
+  //       tokens[i - 1].type == TK_MULT || tokens[i - 1].type == TK_DIVI || 
+  //       tokens[i - 1].type == TK_EQ || tokens[i - 1].type == TK_NOTEQ || tokens[i - 1].type == TK_LAND)) {
+  //     tokens[i].type = TK_DEREF;
+  //   }
+  // }
 
   word_t res = eval(0, nr_token - 1);
   *success = (res != INVALID);
