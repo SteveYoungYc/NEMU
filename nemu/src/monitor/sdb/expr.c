@@ -11,6 +11,8 @@ enum {
   TK_NOTYPE = 256, TK_EQ,
 
   /* TODO: Add more token types */
+  TK_NOTEQ,
+  TK_LAND,
   TK_NUM,
   TK_LP,
   TK_RP,
@@ -36,6 +38,8 @@ static struct rule {
   {"\\+", '+'},         // plus
   {"-", '-'},         //
   {"==", TK_EQ},        // equal
+  {"!=", TK_NOTEQ},
+  {"&&", TK_LAND},
   {"\\$[0-9a-zA-Z]+", TK_REG},
   {"0[xX][0-9a-fA-F]+", TK_HEX},
   {"[0-9][0-9]*", TK_NUM},
@@ -118,38 +122,17 @@ static bool make_token(char *e) {
             nr_token++;
             break;
           }
-          case TK_DEREF: {
-            tokens[nr_token].type = TK_DEREF;
-            nr_token++;
-            break;
-          }
-          case '+': {
-            tokens[nr_token].type = '+';
-            nr_token++;
-            break;
-          }
-          case '*': {
-            tokens[nr_token].type = '*';
-            nr_token++;
-            break;
-          }
-          case '-': {
-            tokens[nr_token].type = '-';
-            nr_token++;
-            break;
-          }
-          case '/': {
-            tokens[nr_token].type = '/';
-            nr_token++;
-            break;
-          }
-          case TK_LP: {
-            tokens[nr_token].type = TK_LP;
-            nr_token++;
-            break;
-          }
+          case TK_DEREF:
+          case '+':
+          case '*':
+          case '-':
+          case '/':
+          case TK_EQ:
+          case TK_NOTEQ:
+          case TK_LAND:
+          case TK_LP:
           case TK_RP: {
-            tokens[nr_token].type = TK_RP;
+            tokens[nr_token].type = rules[i].token_type;
             nr_token++;
             break;
           }
@@ -204,6 +187,7 @@ word_t eval(int p, int q) {
   int res;
   if (p > q) {
     /* Bad expression */
+    printf("[invalid] p: %d, q: %d\n", p, q);
     return INVALID;
   } else if (p == q) {
     /* Single token.
@@ -222,11 +206,12 @@ word_t eval(int p, int q) {
       case TK_REG:
         val = isa_reg_str2val(tokens[p].str, &success);
         if (!success) {
-          printf("cannot find reg\n");
+          printf("[invalid] cannot find reg\n");
           return INVALID;
         }
         break;
       default:
+        printf("[invalid]\n");
         return INVALID;
     }
     return val;
@@ -238,11 +223,11 @@ word_t eval(int p, int q) {
     return eval(p + 1, q - 1);
   } else {
     if (res == -1) {
-      printf("parentheses are invalid.");
+      printf("[invalid] parentheses");
       return INVALID;
     }
     word_t op = -1;
-    int precedence = 2;
+    int precedence = 4;
     int stack_count = 0;
     for (int i = p; i <= q; i++) {
       if (tokens[i].type == TK_LP) {
@@ -253,32 +238,54 @@ word_t eval(int p, int q) {
       }
       if (stack_count > 0)
         continue;
-      if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-')
+      if (tokens[i].type != '*' && tokens[i].type != '/' && tokens[i].type != '+' && tokens[i].type != '-' 
+          && tokens[i].type != TK_EQ && tokens[i].type != TK_NOTEQ && tokens[i].type != TK_LAND)
         continue;
       switch (tokens[i].type) {
         case '*':
         case '/':
-          if (1 <= precedence) {
-            precedence = 1;
+          if (3 <= precedence) {
+            precedence = 3;
             op = i;
           }
           break;
         case '+':
         case '-':
+          if (2 <= precedence) {
+            precedence = 2;
+            op = i;
+          }
+          break;
+        case TK_EQ:
+        case TK_NOTEQ:
+          if (1 <= precedence) {
+            precedence = 1;
+            op = i;
+          }
+          break;
+        case TK_LAND:
           if (0 <= precedence) {
             precedence = 0;
             op = i;
           }
           break;
+        default: {
+          printf("[invalid] op\n");
+          return INVALID;
+        }
       }
     }
     // printf("main op is %c\n", tokens[op].type);
     word_t val1 = eval(p, op - 1);
-    if (val1 == INVALID)
+    if (val1 == INVALID) {
+      printf("[invalid] val1\n");
       return INVALID;
+    }
     word_t val2 = eval(op + 1, q);
-    if (val2 == INVALID)
+    if (val2 == INVALID) {
+      printf("[invalid] val2\n");
       return INVALID;
+    }
 
     switch (tokens[op].type) {
       case '+':
@@ -289,10 +296,17 @@ word_t eval(int p, int q) {
         return val1 * val2;
       case '/': {
         if (val2 == 0) {
+          printf("[invalid] divide by 0\n");
           return INVALID;
         }
         return val1 / val2;
       }
+      case TK_EQ:
+        return (val1 == val2) ? 1 : 0;
+      case TK_NOTEQ:
+        return (val1 != val2) ? 1 : 0;
+      case TK_LAND:
+        return val1 && val2;
       default: assert(0); return 0;
     }
   }
@@ -306,9 +320,9 @@ word_t expr(char *e, bool *success) {
 
   /* TODO: Insert codes to evaluate the expression. */
   for (int i = 0; i < nr_token; i ++) {
-    if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == 0)) {
-      tokens[i].type = TK_DEREF;
-    }
+    // if (tokens[i].type == '*' && (i == 0 || tokens[i - 1].type == 0)) {
+    //   tokens[i].type = TK_DEREF;
+    // }
   }
 
   word_t res = eval(0, nr_token - 1);
