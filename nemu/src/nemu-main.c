@@ -1,4 +1,5 @@
 #include <common.h>
+#include <test/expr_test.h>
 
 void init_monitor(int, char *[]);
 void am_init_monitor();
@@ -14,6 +15,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   /* Start engine. */
+  // expr_test();
   engine_start();
 
   return is_exit_status_bad();

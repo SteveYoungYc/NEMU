@@ -3,11 +3,15 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include <memory/paddr.h>
 
 static int is_batch_mode = false;
 
 void init_regex();
 void init_wp_pool();
+
+extern int cmd_w(char *args);
+extern int cmd_d(char *args);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 static char* rl_gets() {
@@ -34,7 +38,70 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_si(char *args) {
+  int n = 1;
+  if (args != NULL) {
+    n = atoi(args);
+  }
+  cpu_exec(n);
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  if (args == NULL) {
+    printf("usage: 'info r' or 'info w'\n");
+    return 0;
+  }
+  if (strcmp(args, "r") == 0) {
+    isa_reg_display();
+  } else if (strcmp(args, "w") == 0) {
+    
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  if (args == NULL) {
+    printf("usage: 'x N EXPR'\n");
+    return 0;
+  }
+  char *delim = " ";
+  char *p;
+  int n = atoi(strtok(args, delim));
+  n *= 4;
+  word_t reg_addr = 0;
+  while((p = strtok(NULL, delim))) {
+    if (strncmp(p, "0x", 2) != 0 || p + 2 == NULL || *(p + 2) == '\0') {
+      printf("usage: 'x N EXPR'\n");
+      return 0;
+    }
+    reg_addr = strtol(p, NULL, 16);
+  }
+  for (int i = 0; i < n; i++) {
+    if (i > 0 && i % 4 == 0)
+      printf("\n");
+    printf("[0x%x] 0x%x\t", reg_addr, paddr_read(reg_addr, 1));
+    reg_addr++;
+  }
+  printf("\n");
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  if (args == NULL) {
+    printf("usage: 'p expression'\n");
+    return 0;
+  }
+  bool success;
+  word_t res = expr(args, &success);
+  if (success) {
+    printf("%u\n", res);
+  }
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -49,7 +116,12 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
 
   /* TODO: Add more commands */
-
+  { "si", "Execute single step", cmd_si },
+  { "info", "Print status", cmd_info },
+  { "x", "Scan memory", cmd_x },
+  { "p", "Calculate expression", cmd_p },
+  { "w", "Add watch point", cmd_w },
+  { "d", "Delete Watch point", cmd_d }
 };
 
 #define NR_CMD ARRLEN(cmd_table)
