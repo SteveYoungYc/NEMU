@@ -80,6 +80,14 @@ int fmt_parser(const char* fmt, va_list args, int out_tpye, char* out) {
     base = 10;
 
     switch (*str_fmt) {
+      case 'c':
+        char c = (unsigned char)_va_arg(args, int);
+        if (out_tpye == STR_OUT)
+          *str_out++ = c;
+        else if (out_tpye == UART_OUT)
+          putch(c);
+        continue;
+
       case 's':
         s = _va_arg(args, char*);
         int s_len = strlen(s);
