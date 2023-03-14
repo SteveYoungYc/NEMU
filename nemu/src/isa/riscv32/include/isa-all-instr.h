@@ -7,5 +7,6 @@
                     f(add) f(sub) f(xor) f(or) f(and) f(sll) f(srl) f(sra) f(slt) f(sltu) \
                     f(beq) f(bne) f(blt) f(bge) f(bltu) f(bgeu) \
                     f(mul) f(mulh) f(mulsu) f(mulu) f(div) f(divu) f(rem) f(remu) \
-                    f(lb) f(lh) f(lw) f(lbu) f(lhu) f(sb) f(sh) f(sw)
+                    f(lb) f(lh) f(lw) f(lbu) f(lhu) f(sb) f(sh) f(sw) \
+                    f(csrrw) f(csrrs) f(csrrc) f(csrrwi) f(csrrsi) f(csrrci)
 def_all_EXEC_ID();
