@@ -1,3 +1,15 @@
+def_EHelper(ecall) {
+  bool success;
+  word_t NO = isa_reg_str2val("a7", &success);
+  assert(success);
+  vaddr_t vaddr = isa_raise_intr(NO, s->snpc);
+  rtl_j(s, vaddr);
+}
+
+def_EHelper(mret) {
+  rtl_jr(s, csr_mepc);
+}
+
 def_EHelper(csrrw) {
   rtlreg_t *csr = get_sr(id_src2->imm);
   assert(csr != NULL);
