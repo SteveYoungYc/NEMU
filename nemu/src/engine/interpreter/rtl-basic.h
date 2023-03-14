@@ -159,39 +159,33 @@ static inline def_rtl(jrelop, uint32_t relop,
 }
 
 // csr
-static inline def_rtl(csrrw, const rtlreg_t *src1, const word_t imm, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm);
+static inline def_rtl(csrrw, const rtlreg_t *src1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr = *src1;
 }
 
-static inline def_rtl(csrrs, const rtlreg_t *src1, const word_t imm, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm);
+static inline def_rtl(csrrs, const rtlreg_t *src1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr |= *src1;
 }
 
-static inline def_rtl(csrrc, const rtlreg_t *src1, const word_t imm, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm);
+static inline def_rtl(csrrc, const rtlreg_t *src1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr &= ~*src1;
 }
 
 
-static inline def_rtl(csrrwi, const word_t imm1, const word_t imm2, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm2);
+static inline def_rtl(csrrwi, const word_t imm1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr = imm1;
 }
 
-static inline def_rtl(csrrsi, const word_t imm1, const word_t imm2, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm2);
+static inline def_rtl(csrrsi, const word_t imm1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr |= imm1;
 }
 
-static inline def_rtl(csrrci, const word_t imm1, const word_t imm2, rtlreg_t* dest) {
-  rtlreg_t *csr = get_sr(imm2);
+static inline def_rtl(csrrci, const word_t imm1, rtlreg_t *csr, rtlreg_t* dest) {
   *dest = *csr;
   *csr &= ~imm1;
 }
