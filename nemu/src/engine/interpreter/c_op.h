@@ -15,6 +15,7 @@
 #define c_sra(a, b) ((sword_t)(a) >> ((b) & c_shift_mask))
 #define c_slt(a, b) (((sword_t)(a) < (sword_t)(b)) ? 1 : 0)
 #define c_sltu(a, b) (((word_t)(a) < (word_t)(b)) ? 1 : 0)
+#define c_sext(a, num) (((sword_t)a << num) >> num)
 
 #ifdef CONFIG_ISA64
 #define c_sext32to64(a) ((int64_t)(int32_t)(a))

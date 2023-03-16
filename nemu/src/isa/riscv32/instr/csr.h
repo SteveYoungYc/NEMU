@@ -2,12 +2,12 @@ def_EHelper(ecall) {
   bool success;
   word_t NO = isa_reg_str2val("a7", &success);
   assert(success);
-  vaddr_t vaddr = isa_raise_intr(NO, s->snpc);
+  vaddr_t vaddr = isa_raise_intr(NO, s->pc);
   rtl_j(s, vaddr);
 }
 
 def_EHelper(mret) {
-  rtl_jr(s, csr_mepc);
+  rtl_j(s, *csr_mepc + 4);
 }
 
 def_EHelper(csrrw) {
