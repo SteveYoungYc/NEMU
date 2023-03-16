@@ -218,8 +218,11 @@ word_t eval(int p, int q) {
       case TK_REG:
         val = isa_reg_str2val(tokens[p].str, &success);
         if (!success) {
-          printf("[invalid] cannot find reg\n");
-          return INVALID;
+          if (strcmp(tokens[p].str, "pc") != 0) {
+            printf("[invalid] cannot find reg\n");
+            return INVALID;
+          }
+          val = cpu.pc;
         }
         break;
       case TK_DEREF:
